@@ -1,0 +1,28 @@
+{
+  "name": "demo-company-server",
+  "version": "1.0.0",
+  "description": "Demo company backend that simulates realistic production failure scenarios for testing incident management systems",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [
+    "demo",
+    "monitoring",
+    "incident-management",
+    "testing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
+
