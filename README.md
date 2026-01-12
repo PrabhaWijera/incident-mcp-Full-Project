@@ -1,9 +1,12 @@
 DashBoard View
-<img width="1920" height="1421" alt="image" src="https://github.com/user-attachments/assets/45615719-eef5-428b-a227-18571ca1e40f" />
+<img width="1920" height="2353" alt="image" src="https://github.com/user-attachments/assets/b4a91737-1b0f-4093-8f6f-2aec04dff5a2" />
+
 Incidents Page
-<img width="1920" height="1042" alt="image" src="https://github.com/user-attachments/assets/154b8420-ee02-4455-9262-d6f48b05f3be" />
+<img width="1920" height="9432" alt="image" src="https://github.com/user-attachments/assets/e2d63451-e827-4279-ac07-fe5fbff534a3" />
+
 Services Page
-<img width="1920" height="992" alt="image" src="https://github.com/user-attachments/assets/b927c926-e291-4a04-b296-9fd6021ea4d2" />
+<img width="1920" height="992" alt="image" src="https://github.com/user-attachments/assets/97f3709f-36f6-463e-b2d3-de01cfbb3026" />
+
 User Guide 
-<img width="1920" height="9315" alt="image" src="https://github.com/user-attachments/assets/b6bc0291-89a3-42f5-96f7-dfc5525bc841" />
+<img width="1920" height="9315" alt="image" src="https://github.com/user-attachments/assets/27a12da2-8086-4d2a-b4b9-b1fd1209dc32" />
 
