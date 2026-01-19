@@ -1,28 +1,31 @@
 {
   "name": "demo-company-server",
   "version": "1.0.0",
-  "description": "Demo company backend that simulates realistic production failure scenarios for testing incident management systems",
+  "description": "Demo service for testing the AI incident management system",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "demo",
-    "monitoring",
     "incident-management",
-    "testing"
+    "health-check",
+    "simulation"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "AI Incident Management System",
+  "license": "MIT",
   "dependencies": {
-    "express": "^5.2.1",
     "cors": "^2.8.5",
-    "morgan": "^1.10.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
-

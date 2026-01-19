@@ -1,208 +1,123 @@
-/**
- * Failure Simulator Service
- * Controls various failure modes for realistic incident simulation
- */
+// Failure Simulator Service
+// Simulates various failure scenarios for testing the incident management system
 
-let currentFailureMode = {
-  auth: { enabled: false, failureRate: 0 },
-  database: { enabled: false, failureRate: 0 },
-  cpu: { enabled: false, intensity: 0 },
-  memory: { enabled: false, leakRate: 0 },
-  network: { enabled: false, timeout: false },
-  config: { enabled: false }
+// Configuration for failure simulation
+// Only DB and Auth simulate failures - API and overall health should always be healthy
+const FAILURE_CONFIG = {
+    overall: { probability: 0.0, responseTime: 500 },  // Overall health always healthy
+    api: { probability: 0.0, responseTime: 300 },     // API always healthy
+    db: { probability: 0.15, responseTime: 800 },       // 15% chance of DB failure per check
+    auth: { probability: 0.2, responseTime: 200 }       // 20% chance of Auth failure per check
 };
 
-let memoryLeakArray = []; // For memory leak simulation
-let cpuLoadInterval = null; // For CPU overload simulation
+// Track recent failures to simulate sustained issues
+const recentFailures = new Map();
 
-/**
- * Get current failure mode status
- */
-function getFailureMode(req, res) {
-  res.json({
-    currentMode: currentFailureMode,
-    instructions: {
-      auth: "Set failureRate (0-1) to simulate authentication failures",
-      database: "Set failureRate (0-1) to simulate database errors",
-      cpu: "Set intensity (1-10) to simulate CPU overload",
-      memory: "Set leakRate (MB per request) to simulate memory leak",
-      network: "Set timeout: true to simulate external dependency failures",
-      config: "Set enabled: true to simulate configuration errors"
+// Check if a subsystem should fail based on probability
+const checkFailure = (subsystem = 'overall') => {
+    const config = FAILURE_CONFIG[subsystem] || FAILURE_CONFIG.overall;
+    const currentTime = Date.now();
+    
+    // Check if this subsystem is in a sustained failure state
+    if (recentFailures.has(subsystem)) {
+        const failureInfo = recentFailures.get(subsystem);
+        
+        // If failure duration hasn't expired, continue failing
+        if (currentTime - failureInfo.startTime < failureInfo.duration) {
+            return {
+                shouldFail: true,
+                failureReason: failureInfo.reason,
+                responseTime: config.responseTime + Math.floor(Math.random() * 500)
+            };
+        } else {
+            // Duration expired, remove from recent failures
+            recentFailures.delete(subsystem);
+        }
     }
-  });
-}
-
-/**
- * Set failure mode
- */
-function setFailureMode(req, res) {
-  const { mode, config } = req.body;
-
-  if (!mode || !currentFailureMode[mode]) {
-    return res.status(400).json({ error: `Invalid failure mode. Available: ${Object.keys(currentFailureMode).join(", ")}` });
-  }
-
-  // Reset previous mode if disabling
-  if (config.enabled === false) {
-    resetSpecificMode(mode);
-  }
-
-  // Apply new configuration
-  currentFailureMode[mode] = { ...currentFailureMode[mode], ...config };
-
-  // Initialize mode-specific behavior
-  if (config.enabled) {
-    initializeFailureMode(mode, config);
-  }
-
-  console.log(`[FAILURE SIMULATOR] ${mode} mode ${config.enabled ? "ENABLED" : "DISABLED"}`);
-  if (config.enabled) {
-    console.log(`[FAILURE SIMULATOR] ${mode} config:`, config);
-  }
-
-  res.json({
-    message: `Failure mode '${mode}' ${config.enabled ? "enabled" : "disabled"}`,
-    currentMode: currentFailureMode[mode]
-  });
-}
-
-/**
- * Reset all failure modes
- */
-function reset(req, res) {
-  Object.keys(currentFailureMode).forEach(mode => {
-    resetSpecificMode(mode);
-  });
-
-  currentFailureMode = {
-    auth: { enabled: false, failureRate: 0 },
-    database: { enabled: false, failureRate: 0 },
-    cpu: { enabled: false, intensity: 0 },
-    memory: { enabled: false, leakRate: 0 },
-    network: { enabled: false, timeout: false },
-    config: { enabled: false }
-  };
-
-  console.log("[FAILURE SIMULATOR] All failure modes reset");
-  res.json({ message: "All failure modes reset", currentMode: currentFailureMode });
-}
-
-/**
- * Reset specific failure mode
- */
-function resetSpecificMode(mode) {
-  switch (mode) {
-    case "memory":
-      memoryLeakArray = [];
-      if (global.gc) {
-        global.gc();
-      }
-      break;
-    case "cpu":
-      if (cpuLoadInterval) {
-        clearInterval(cpuLoadInterval);
-        cpuLoadInterval = null;
-      }
-      break;
-  }
-}
-
-/**
- * Initialize failure mode behavior
- */
-function initializeFailureMode(mode, config) {
-  switch (mode) {
-    case "cpu":
-      if (!cpuLoadInterval && config.intensity > 0) {
-        const loadDuration = config.intensity * 100; // milliseconds
-        cpuLoadInterval = setInterval(() => {
-          const start = Date.now();
-          while (Date.now() - start < loadDuration) {
-            Math.random() * Math.random(); // CPU intensive operation
-          }
-        }, 10);
-      }
-      break;
-    case "memory":
-      // Memory leak will be handled per request
-      break;
-  }
-}
-
-/**
- * Check if failure should occur based on mode and rate
- */
-function shouldFail(mode, rate = 0) {
-  if (!currentFailureMode[mode]?.enabled) {
-    return false;
-  }
-  return Math.random() < rate;
-}
-
-/**
- * Simulate CPU overload delay
- */
-function simulateCpuOverload() {
-  if (!currentFailureMode.cpu?.enabled) {
-    return Promise.resolve();
-  }
-
-  const intensity = currentFailureMode.cpu.intensity || 0;
-  const delay = intensity * 50; // milliseconds
-
-  return new Promise(resolve => {
-    const start = Date.now();
-    const end = start + delay;
-    while (Date.now() < end) {
-      Math.random() * Math.random(); // CPU intensive
+    
+    // Calculate if this request should fail based on probability
+    const shouldFail = Math.random() < config.probability;
+    
+    if (shouldFail) {
+        // Randomly select a failure reason
+        const failureReasons = [
+            'Service temporarily overloaded',
+            'Resource constraint detected',
+            'External dependency timeout',
+            'Memory allocation error',
+            'Connection pool exhausted',
+            'Rate limiting threshold exceeded',
+            'Network connectivity issue',
+            'Configuration error detected',
+            'Authentication server unreachable',
+            'Database connection failed'
+        ];
+        
+        const reason = failureReasons[Math.floor(Math.random() * failureReasons.length)];
+        
+        // Sometimes create sustained failures (20% of the time)
+        if (Math.random() < 0.2) {
+            const duration = 30000 + Math.floor(Math.random() * 60000); // 30-90 seconds
+            recentFailures.set(subsystem, {
+                startTime: currentTime,
+                duration: duration,
+                reason: reason
+            });
+        }
+        
+        return {
+            shouldFail: true,
+            failureReason: reason,
+            responseTime: config.responseTime + Math.floor(Math.random() * 500)
+        };
     }
-    resolve();
-  });
-}
+    
+    return {
+        shouldFail: false,
+        failureReason: null,
+        responseTime: Math.floor(Math.random() * config.responseTime / 2) + 10
+    };
+};
 
-/**
- * Simulate memory leak
- */
-function simulateMemoryLeak() {
-  if (!currentFailureMode.memory?.enabled) {
-    return;
-  }
+// Force a failure for a specific subsystem (for testing purposes)
+const forceFailure = (subsystem, duration = 30000, reason = 'Forced failure for testing') => {
+    recentFailures.set(subsystem, {
+        startTime: Date.now(),
+        duration: duration,
+        reason: reason
+    });
+};
 
-  const leakRate = currentFailureMode.memory.leakRate || 1; // MB per request
-  const leakSize = leakRate * 1024 * 1024; // Convert to bytes
-  const array = new Array(leakSize / 8).fill(0);
-  memoryLeakArray.push(array);
+// Clear all forced failures
+const clearFailures = () => {
+    recentFailures.clear();
+};
 
-  // Log memory usage
-  if (process.memoryUsage) {
-    const usage = process.memoryUsage();
-    console.log(`[MEMORY LEAK] Heap Used: ${(usage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-  }
-}
+// Get current failure statistics
+const getFailureStats = () => {
+    const stats = {};
+    Object.keys(FAILURE_CONFIG).forEach(subsystem => {
+        stats[subsystem] = {
+            configuredProbability: FAILURE_CONFIG[subsystem].probability,
+            currentlyFailing: recentFailures.has(subsystem),
+            ...(recentFailures.has(subsystem) && {
+                remainingDuration: Math.max(0, recentFailures.get(subsystem).duration - 
+                    (Date.now() - recentFailures.get(subsystem).startTime))
+            })
+        };
+    });
+    return stats;
+};
 
-/**
- * Simulate network timeout
- */
-function simulateNetworkTimeout() {
-  if (!currentFailureMode.network?.enabled || !currentFailureMode.network.timeout) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject(new Error("External dependency timeout - service unavailable"));
-    }, 5000);
-  });
-}
+// Reset failure simulation to initial state
+const reset = () => {
+    recentFailures.clear();
+};
 
 module.exports = {
-  getFailureMode,
-  setFailureMode,
-  reset,
-  shouldFail,
-  simulateCpuOverload,
-  simulateMemoryLeak,
-  simulateNetworkTimeout,
-  getCurrentMode: () => currentFailureMode
+    checkFailure,
+    forceFailure,
+    clearFailures,
+    getFailureStats,
+    reset
 };
-
